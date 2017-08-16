@@ -1,0 +1,118 @@
+---
+title: "Practical machine learning course project"
+author: "Karl Kaspar Haavel"
+date: "8/13/2017"
+output: html_document
+---
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Data cleaning 
+
+Import the required libraries and download the data and see what kind of data this is. 
+
+```{r}
+library(caret)
+library(randomForest)
+
+
+if(!file.exists("training.csv")){
+        download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile = "training.csv")
+}
+
+if(!file.exists("testing.csv")){
+        download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",destfile = "testing.csv")
+}
+
+data.training <- read.csv("training.csv",na.strings = c("#DIV/0!","","NA"), stringsAsFactors = FALSE)
+data.testing <- read.csv("testing.csv",na.strings = c("#DIV/0!","","NA"), stringsAsFactors = FALSE)
+
+dim(data.training);dim(data.testing)
+```
+
+Our dataset consists of 19622 observations of 160 variables. It seems that there are many variables which have a lot of 'NA' so we create a new dataset where there are only variables of interest. We will also factorize some of the variables. We factorize user_name and classe which is our output of the model. 
+
+```{r}
+data.training.cleaned <- data.training[,colSums(is.na(data.training)) == 0]
+data.testing.cleaned <- data.testing[,colSums(is.na(data.training)) == 0]
+
+data.training.cleaned$user_name <- as.factor(data.training.cleaned$user_name)
+data.training.cleaned$classe <- as.factor(data.training.cleaned$classe)
+data.testing.cleaned$user_name <- as.factor(data.testing.cleaned$user_name)
+
+drop <- names(data.training.cleaned)[1:7]
+data.training.cleaned <- data.training.cleaned[, !names(data.training.cleaned) %in% drop]
+data.testing.cleaned <- data.testing.cleaned[, !names(data.testing.cleaned) %in% drop]
+        
+dim(data.training.cleaned); dim(data.testing.cleaned)
+
+```
+Now we have instead of 160 variables, we have 60 variables. 
+
+## Preprocessing, removing near zero values and creating partitions 
+
+We preprocess the data to combine or get rid of variables that play a small role in the analysis. Secondly, we remove the variables that have a near zero value because they also have a small role. Finally, we create a training and training and validation set. We set the training set to 75% of the data and we validate the data with the last 25%.  
+
+```{r}
+
+# Preprocessing
+num.index <- which(lapply(data.training.cleaned,FUN = is.numeric) %in% TRUE)
+
+pre.proc <- preProcess(data.training.cleaned[,num.index],method = c("corr","scale"))
+pre.training <- predict(pre.proc,data.training.cleaned[,num.index])
+pre.training$classe <- data.training.cleaned$classe
+pre.testing <- predict(pre.proc,data.testing.cleaned[,num.index])
+
+nzv <- nearZeroVar(pre.training,saveMetrics = TRUE,uniqueCut = 20)
+data.training.cleaned <- pre.training[,nzv$nzv==FALSE]
+nzv <- nearZeroVar(pre.testing,saveMetrics = TRUE,uniqueCut = 20)
+data.testing.cleaned <- pre.testing[,nzv$nzv==FALSE]
+
+set.seed(7100000)
+in.train <- createDataPartition(data.training.cleaned$classe,p = 0.75, list = FALSE)
+training <- data.training.cleaned[in.train,]
+validation <- data.training.cleaned[-in.train,]
+
+dim(training) ; dim(validation)
+```
+
+# Model Training 
+
+We will be using randomforest to model the dataset, because it's one of the best choices for a dataset with a lot of variables and is really accurate. The cons are that it is quite slow to calculate, hard to interpret and is prone to overfitting. We will allow parrallel processing to make the process faster, at the same time we want five iterations so we won't be overfitting the model. We shall do cross validation to our random forest model do again to lessen the amount of overfitting. Because we are not required to infer our model and are only intrested in the output random forest model deems to be the right choice.  
+
+```{r cache = TRUE}
+#mod.fit <- train(classe ~ ., data = training, method = "rf", number = 5, importance = TRUE, trControl = trainControl(method = "repeatedcv", allowParallel = TRUE))
+
+mod.fit <- train(classe ~ ., data = training, method = "rf", trControl = trainControl(method="cv", number = 5, allowParallel = TRUE))
+mod.fit
+
+
+```
+The model is quite accurate and seems like it will do the job of predicting well. But to be sure we will to cross validation and calculate the accuarcy and sub sample error estimations using the validation data. 
+
+# Cross valitation and out of sample error estimations  
+
+We want to find out if our model is any good using the validation dataset. 
+```{r}
+pred <- predict(mod.fit,validation)
+table(pred,validation$classe)
+```
+Looks like the model is quite good at predicting the values of the validation dataset and we will calculate the accuarcy and sub sample error rate of the model. 
+```{r}
+ac <- postResample(validation$classe,pred)[[1]]
+cat("Accuarcy of the model: ", ac*100,"%\n")
+cat("Sub sample error rate of the model: ", (1-ac)*100,"%")
+```
+
+# Final model on the testing data set. 
+
+The testing set has been pre processed so it should be of the same level as the training set. 
+
+```{r}
+test <- data.testing.cleaned
+pred <- predict(mod.fit,test)
+pred
+```
+The RF model output will be the conclusion of this report. 
