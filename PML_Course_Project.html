@@ -155,7 +155,7 @@ data.testing &lt;- read.csv(&quot;testing.csv&quot;,na.strings = c(&quot;#DIV/0!
 dim(data.training);dim(data.testing)</code></pre>
 <pre><code>## [1] 19622   160</code></pre>
 <pre><code>## [1]  20 160</code></pre>
-<p>Our dataset consists of 19622 observations of 160 variables. It seems that there are many variables which have a lot of ‘NA’ so we create a new dataset where there are only variables of interest. We will also factorize some of the variables. We factorize user_name and classe which is our output of the model.</p>
+<p>Our dataset consists of 19622 observations of 160 variables. It seems that there are many variables which have a lot of ‘NA’ so we create a new dataset where there are only variables of interest. We will also factorize some of the variables. We factorize user_name and classe which is our output of the model. Finally we will drop the first seven columns of the dataset because they add little or no value to the model.</p>
 <pre class="r"><code>data.training.cleaned &lt;- data.training[,colSums(is.na(data.training)) == 0]
 data.testing.cleaned &lt;- data.testing[,colSums(is.na(data.training)) == 0]
 
@@ -170,7 +170,7 @@ data.testing.cleaned &lt;- data.testing.cleaned[, !names(data.testing.cleaned) %
 dim(data.training.cleaned); dim(data.testing.cleaned)</code></pre>
 <pre><code>## [1] 19622    53</code></pre>
 <pre><code>## [1] 20 53</code></pre>
-<p>Now we have instead of 160 variables, we have 60 variables.</p>
+<p>Now we have instead of 160 variables, we have 53 variables.</p>
 </div>
 <div id="preprocessing-removing-near-zero-values-and-creating-partitions" class="section level2">
 <h2>Preprocessing, removing near zero values and creating partitions</h2>

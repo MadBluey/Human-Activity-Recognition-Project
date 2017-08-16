@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 ## Background
@@ -36,7 +37,7 @@ data.testing <- read.csv("testing.csv",na.strings = c("#DIV/0!","","NA"), string
 dim(data.training);dim(data.testing)
 ```
 
-Our dataset consists of 19622 observations of 160 variables. It seems that there are many variables which have a lot of 'NA' so we create a new dataset where there are only variables of interest. We will also factorize some of the variables. We factorize user_name and classe which is our output of the model. 
+Our dataset consists of 19622 observations of 160 variables. It seems that there are many variables which have a lot of 'NA' so we create a new dataset where there are only variables of interest. We will also factorize some of the variables. We factorize user_name and classe which is our output of the model. Finally we will drop the first seven columns of the dataset because they add little or no value to the model. 
 
 ```{r}
 data.training.cleaned <- data.training[,colSums(is.na(data.training)) == 0]
@@ -53,7 +54,7 @@ data.testing.cleaned <- data.testing.cleaned[, !names(data.testing.cleaned) %in%
 dim(data.training.cleaned); dim(data.testing.cleaned)
 
 ```
-Now we have instead of 160 variables, we have 60 variables. 
+Now we have instead of 160 variables, we have 53 variables. 
 
 ## Preprocessing, removing near zero values and creating partitions 
 
